@@ -1,11 +1,200 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>briefkani</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
+    <div class="poster-stage">
+        <main class="poster">
+            <canvas id="field" aria-hidden="true"></canvas>
+            <section class="poster__copy">
+                <p class="poster__eyebrow">briefkani</p>
+                <h1 class="poster__title">Creative systems with a pulse.</h1>
+                <p class="poster__hint">Click or press any key to shift the mood.</p>
+            </section>
+        </main>
+    </div>
 
+    <script>
+        const canvas = document.getElementById('field');
+        const ctx = canvas.getContext('2d');
+        const maskCanvas = document.createElement('canvas');
+        const maskCtx = maskCanvas.getContext('2d');
+        maskCanvas.width = 400;
+        maskCanvas.height = 400;
+
+        const CANVAS_WIDTH = 1500;
+        const CANVAS_HEIGHT = 1000;
+        const GRID_COLS = 60;
+        const GRID_ROWS = 44;
+        const circles = [];
+        const words = ['BRIEFKANI', '.', 'com'];
+        const LETTER_DURATION = 1600;
+        const LETTER_GAP = 500;
+        const EDGE_FADE = 150;
+        let currentWordIndex = 0;
+        let currentLetterIndex = 0;
+        let currentMaskData = null;
+        let lastLetterSwitch = performance.now();
+        let showingBlank = false;
+
+        const centerBounds = {
+            minX: 0.2,
+            maxX: 0.8,
+            minY: 0.2,
+            maxY: 0.8,
+        };
+
+        function initGrid() {
+            circles.length = 0;
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    circles.push({
+                        col: c,
+                        row: r,
+                        baseRadius: 1 + Math.random() * 2,
+                        phaseX: Math.random() * Math.PI * 2,
+                        phaseY: Math.random() * Math.PI * 2,
+                        edgeBias: 0.7 + Math.random() * 0.8,
+                        swayAmpX: 6 + Math.random() * 10,
+                        swayAmpY: 6 + Math.random() * 10,
+                        swaySpeedX: 0.25 + Math.random() * 0.55,
+                        swaySpeedY: 0.25 + Math.random() * 0.55,
+                        driftAngle: Math.random() * Math.PI * 2,
+                        driftSpeed: 2 + Math.random() * 6,
+                        driftFreq: 0.05 + Math.random() * 0.08,
+                        pulseFreq: 0.8 + Math.random() * 1.1,
+                        radius: 0,
+                    });
+                }
+            }
+        }
+
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.style.width = `${CANVAS_WIDTH}px`;
+            canvas.style.height = `${CANVAS_HEIGHT}px`;
+            canvas.width = CANVAS_WIDTH * dpr;
+            canvas.height = CANVAS_HEIGHT * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function drawLetterMask(letter) {
+            maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+            maskCtx.fillStyle = '#fff';
+            maskCtx.textAlign = 'center';
+            maskCtx.textBaseline = 'middle';
+            maskCtx.font = '260px "Menlo", "Consolas", "Liberation Mono", "Courier New", monospace';
+            maskCtx.fillText(letter, maskCanvas.width / 2, maskCanvas.height / 2);
+            currentMaskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+        }
+
+        function sampleMask(nx, ny) {
+            if (!currentMaskData) return 0;
+            if (
+                nx < centerBounds.minX ||
+                nx > centerBounds.maxX ||
+                ny < centerBounds.minY ||
+                ny > centerBounds.maxY
+            ) {
+                return 0;
+            }
+            const localX = (nx - centerBounds.minX) / (centerBounds.maxX - centerBounds.minX);
+            const localY = (ny - centerBounds.minY) / (centerBounds.maxY - centerBounds.minY);
+
+            const x = Math.floor(localX * (maskCanvas.width - 1));
+            const y = Math.floor(localY * (maskCanvas.height - 1));
+            const idx = (y * maskCanvas.width + x) * 4 + 3;
+            return currentMaskData.data[idx] / 255;
+        }
+
+        function setNextLetter() {
+            if (showingBlank) {
+                currentMaskData = null;
+                showingBlank = false;
+                currentLetterIndex = 0;
+                currentWordIndex = (currentWordIndex + 1) % words.length;
+                return;
+            }
+
+            const word = words[currentWordIndex];
+            const letter = word[currentLetterIndex];
+            drawLetterMask(letter);
+            currentLetterIndex++;
+            if (currentLetterIndex >= word.length) {
+                showingBlank = true;
+            }
+        }
+
+        function animate(now) {
+            const cw = canvas.clientWidth;
+            const ch = canvas.clientHeight;
+            ctx.clearRect(0, 0, cw, ch);
+
+            const dotColor = getComputedStyle(document.documentElement).getPropertyValue('--dot-color');
+            const time = now * 0.001;
+            circles.forEach((circle) => {
+                const nx = circle.col / (GRID_COLS - 1);
+                const ny = circle.row / (GRID_ROWS - 1);
+                const baseX = nx * cw;
+                const baseY = ny * ch;
+
+                const swayX = Math.sin(time * circle.swaySpeedX + circle.phaseX) * circle.swayAmpX;
+                const swayY = Math.cos(time * circle.swaySpeedY + circle.phaseY) * circle.swayAmpY;
+                const drift = Math.sin(time * circle.driftFreq + circle.phaseY) * circle.driftSpeed;
+                const driftX = Math.cos(circle.driftAngle) * drift;
+                const driftY = Math.sin(circle.driftAngle) * drift;
+                const px = baseX + swayX + driftX;
+                const py = baseY + swayY + driftY;
+
+                const intensity = sampleMask(nx, ny);
+                const targetRadius =
+                    circle.baseRadius + intensity * 8 + Math.sin(time * circle.pulseFreq + circle.phaseX) * 0.5;
+                circle.radius += (targetRadius - circle.radius) * 0.08;
+
+                const distToEdge = Math.min(px, cw - px, py, ch - py);
+                let alpha = 1;
+                if (distToEdge < EDGE_FADE * 1.5) {
+                    const norm = Math.min(Math.max(distToEdge / (EDGE_FADE * circle.edgeBias), 0), 1);
+                    const eased = norm * norm * (3 - 2 * norm); // smoothstep
+                    alpha *= eased;
+                }
+
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.arc(px, py, Math.max(circle.radius, 0.4), 0, Math.PI * 2);
+                ctx.fillStyle = dotColor;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+
+            if (now - lastLetterSwitch > LETTER_DURATION) {
+                lastLetterSwitch = now + LETTER_GAP * Math.random();
+                setNextLetter();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function toggleTheme() {
+            const root = document.documentElement;
+            const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+            root.dataset.theme = next;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('click', toggleTheme);
+        window.addEventListener('keydown', toggleTheme);
+
+        initGrid();
+        resizeCanvas();
+        setNextLetter();
+        requestAnimationFrame(animate);
+    </script>
 </body>
 </html>
