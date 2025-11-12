@@ -37,8 +37,6 @@ body {
 .poster-stage {
     position: fixed;
     inset: 0;
-    padding: min(32px, 4vw);
-    overflow: hidden;
 }
 
 .poster {
@@ -58,7 +56,7 @@ body {
     height: 100%;
 }
 
-.poster__copy {
+.poster-copy {
     position: absolute;
     inset: auto 0 40px 0;
     padding: 0 48px;
@@ -66,21 +64,15 @@ body {
     pointer-events: none;
 }
 
-.poster__eyebrow {
+.eyebrow {
     font-size: 0.85rem;
     letter-spacing: 0.4rem;
-    text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 12px;
 }
 
-.poster__title {
+.title {
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     font-weight: 600;
     margin-bottom: 8px;
-}
-
-.poster__hint {
-    font-size: 0.95rem;
-    color: var(--muted);
 }

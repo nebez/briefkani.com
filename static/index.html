@@ -9,16 +9,15 @@
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-    <div class="poster-stage">
-        <main class="poster">
+    <main class="poster-stage">
+        <div class="poster">
             <canvas id="field" aria-hidden="true"></canvas>
-            <section class="poster__copy">
-                <p class="poster__eyebrow">briefkani</p>
-                <h1 class="poster__title">Creative systems with a pulse.</h1>
-                <p class="poster__hint">Click or press any key to shift the mood.</p>
-            </section>
-        </main>
-    </div>
+        </div>
+        <section class="poster-copy">
+            <p class="eyebrow">briefkani.com</p>
+            <h1 class="title">Creative software with a pulse.</h1>
+        </section>
+    </main>
 
     <script>
         const canvas = document.getElementById('field');
@@ -161,7 +160,7 @@
                 let alpha = 1;
                 if (distToEdge < EDGE_FADE * 1.5) {
                     const norm = Math.min(Math.max(distToEdge / (EDGE_FADE * circle.edgeBias), 0), 1);
-                    const eased = norm * norm * (3 - 2 * norm); // smoothstep
+                    const eased = norm * norm * (3 - 2 * norm);
                     alpha *= eased;
                 }
 
