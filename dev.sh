@@ -25,7 +25,7 @@ const MIME_TYPES = {
   svg: "image/svg+xml",
 };
 
-const STATIC_PATH = path.join(process.cwd(), "./static");
+const STATIC_PATH = path.join(process.cwd(), "./docs");
 
 const toBool = [() => true, () => false];
 
