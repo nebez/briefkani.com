@@ -32,15 +32,15 @@
         const GRID_COLS = 60;
         const GRID_ROWS = 44;
         const circles = [];
-        const words = ['BRIEFKANI', '.', 'com'];
+        const word = 'BRIEFKANI.com';
         const LETTER_DURATION = 1600;
-        const LETTER_GAP = 500;
+        const LETTER_RESET_DELAY = 300;
         const EDGE_FADE = 150;
         let currentWordIndex = 0;
         let currentLetterIndex = 0;
         let currentMaskData = null;
         let lastLetterSwitch = performance.now();
-        let showingBlank = false;
+        let resettingLetter = false;
 
         const centerBounds = {
             minX: 0.2,
@@ -113,20 +113,11 @@
         }
 
         function setNextLetter() {
-            if (showingBlank) {
-                currentMaskData = null;
-                showingBlank = false;
-                currentLetterIndex = 0;
-                currentWordIndex = (currentWordIndex + 1) % words.length;
-                return;
-            }
-
-            const word = words[currentWordIndex];
             const letter = word[currentLetterIndex];
             drawLetterMask(letter);
             currentLetterIndex++;
             if (currentLetterIndex >= word.length) {
-                showingBlank = true;
+                currentLetterIndex = 0;
             }
         }
 
@@ -172,8 +163,13 @@
                 ctx.globalAlpha = 1;
             });
 
-            if (now - lastLetterSwitch > LETTER_DURATION) {
-                lastLetterSwitch = now + LETTER_GAP * Math.random();
+            if (!resettingLetter && now - lastLetterSwitch > LETTER_DURATION) {
+                lastLetterSwitch = now;
+                currentMaskData = null;
+                resettingLetter = true;
+            } else if (resettingLetter && now - lastLetterSwitch > LETTER_RESET_DELAY) {
+                lastLetterSwitch = now;
+                resettingLetter = false;
                 setNextLetter();
             }
 
@@ -188,7 +184,12 @@
 
         window.addEventListener('resize', resizeCanvas);
         window.addEventListener('click', toggleTheme);
-        window.addEventListener('keydown', toggleTheme);
+        window.addEventListener('keydown', (e) => {
+            // only toggle theme if spacebar
+            if (e.code === 'Space') {
+                toggleTheme();
+            }
+        });
 
         initGrid();
         resizeCanvas();
